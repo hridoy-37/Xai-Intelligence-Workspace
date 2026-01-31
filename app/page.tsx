@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import { motion, useScroll, useSpring } from "framer-motion";
 import dynamic from "next/dynamic";
 
-const HeroSection = dynamic(() => import("@/components/hero/HeroSection"), {
-  ssr: false,
-});
+const Hero = dynamic(
+  () => import("@/components/hero/HeroSection").then((mod) => mod.Hero),
+  {
+    ssr: false,
+  },
+);
 const Terminal = dynamic(() => import("@/components/terminal/Terminal"), {
   ssr: false,
 });
@@ -116,7 +119,7 @@ export default function Home() {
 
       {/* Hero Section - Sticky scroll with particle implosion */}
       <div id="hero">
-        <HeroSection />
+        <Hero />
       </div>
 
       {/* Terminal Section - AI Chat Interface */}
