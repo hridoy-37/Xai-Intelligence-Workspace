@@ -2,58 +2,78 @@
 
 import React, { useRef, useMemo, useEffect } from "react";
 import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Points, PointMaterial, Environment, PerspectiveCamera, MeshTransmissionMaterial } from "@react-three/drei";
+import {
+  Points,
+  PointMaterial,
+  Environment,
+  PerspectiveCamera,
+  MeshTransmissionMaterial,
+} from "@react-three/drei";
 import * as THREE from "three";
 import { motion as m, useScroll, useTransform } from "framer-motion";
 
 // Advanced particle system with implosion effect
-const DataParticleField: React.FC<{ count: number; scrollYProgress: any }> = ({ count, scrollYProgress }) => {
+const DataParticleField: React.FC<{ count: number; scrollYProgress: any }> = ({
+  count,
+  scrollYProgress,
+}) => {
   const points = useRef<THREE.Points>(null!);
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    
+
     for (let i = 0; i < count; i++) {
       // Create spherical distribution
       const radius = 50 + Math.random() * 20;
       const theta = Math.random() * Math.PI * 2;
       const phi = Math.acos(2 * Math.random() - 1);
-      
+
       pos[i * 3] = radius * Math.sin(phi) * Math.cos(theta);
       pos[i * 3 + 1] = radius * Math.sin(phi) * Math.sin(theta);
       pos[i * 3 + 2] = radius * Math.cos(phi);
-      
+
       // Color variation
       const colorIntensity = 0.5 + Math.random() * 0.5;
       colors[i * 3] = 0.4 * colorIntensity;
       colors[i * 3 + 1] = 0.4 * colorIntensity;
       colors[i * 3 + 2] = 0.9 * colorIntensity;
     }
-    
+
     return { positions: pos, colors };
   }, [count]);
 
   const opacity = useTransform(scrollYProgress, [0, 0.3, 1], [1, 0.8, 0]);
-  const implodeScale = useTransform(scrollYProgress, [0, 0.5, 1], [1, 0.3, 0.01]);
+  const implodeScale = useTransform(
+    scrollYProgress,
+    [0, 0.5, 1],
+    [1, 0.3, 0.01],
+  );
 
   useFrame((state) => {
     if (points.current) {
       const time = state.clock.getElapsedTime();
       points.current.rotation.y = time * 0.03;
       points.current.rotation.x = Math.sin(time * 0.02) * 0.1;
-      
+
       const scale = implodeScale.get();
       points.current.scale.setScalar(scale);
-      
+
       // Pulsating effect
       const pulse = Math.sin(time * 0.5) * 0.1 + 0.9;
-      points.current.children[0].material.opacity = opacity.get() * pulse;
+      const child = points.current.children[0] as THREE.Mesh;
+      if (child && child.material) {
+        (child.material as THREE.Material).opacity = opacity.get() * pulse;
+      }
     }
   });
 
   return (
     <group ref={points}>
-      <Points positions={positions.positions} colors={positions.colors} stride={3}>
+      <Points
+        positions={positions.positions}
+        colors={positions.colors}
+        stride={3}
+      >
         <PointMaterial
           transparent
           vertexColors
@@ -69,10 +89,12 @@ const DataParticleField: React.FC<{ count: number; scrollYProgress: any }> = ({ 
 };
 
 // Morphing central geometry
-const CentralGeometry: React.FC<{ scrollYProgress: any }> = ({ scrollYProgress }) => {
+const CentralGeometry: React.FC<{ scrollYProgress: any }> = ({
+  scrollYProgress,
+}) => {
   const meshRef = useRef<THREE.Mesh>(null!);
   const groupRef = useRef<THREE.Group>(null!);
-  
+
   const scale = useTransform(scrollYProgress, [0, 0.5, 1], [1, 2.5, 5]);
   const rotationSpeed = useTransform(scrollYProgress, [0, 1], [0.2, 2]);
   const complexity = useTransform(scrollYProgress, [0, 1], [0, 2]);
@@ -80,15 +102,15 @@ const CentralGeometry: React.FC<{ scrollYProgress: any }> = ({ scrollYProgress }
   useFrame((state) => {
     if (meshRef.current && groupRef.current) {
       const time = state.clock.getElapsedTime();
-      
+
       // Complex rotation
       meshRef.current.rotation.y = time * rotationSpeed.get();
       meshRef.current.rotation.x = Math.sin(time * 0.3) * 0.3;
       meshRef.current.rotation.z = Math.cos(time * 0.2) * 0.2;
-      
+
       // Scale based on scroll
       groupRef.current.scale.setScalar(scale.get());
-      
+
       // Morphing effect
       const morphAmount = complexity.get();
       meshRef.current.scale.x = 1 + Math.sin(time) * 0.2 * morphAmount;
@@ -118,7 +140,7 @@ const CentralGeometry: React.FC<{ scrollYProgress: any }> = ({ scrollYProgress }
           transparent
         />
       </mesh>
-      
+
       {/* Inner glow sphere */}
       <mesh scale={0.4}>
         <sphereGeometry args={[1, 32, 32]} />
@@ -138,11 +160,11 @@ const CentralGeometry: React.FC<{ scrollYProgress: any }> = ({ scrollYProgress }
 // Data connection lines
 const ConnectionLines: React.FC = () => {
   const linesRef = useRef<THREE.Group>(null!);
-  
+
   const geometry = useMemo(() => {
     const points = [];
     const numLines = 20;
-    
+
     for (let i = 0; i < numLines; i++) {
       const angle = (i / numLines) * Math.PI * 2;
       const radius = 15;
@@ -151,11 +173,11 @@ const ConnectionLines: React.FC = () => {
         new THREE.Vector3(
           Math.cos(angle) * radius,
           Math.sin(angle * 2) * 5,
-          Math.sin(angle) * radius
-        )
+          Math.sin(angle) * radius,
+        ),
       );
     }
-    
+
     return new THREE.BufferGeometry().setFromPoints(points);
   }, []);
 
@@ -184,18 +206,30 @@ const Scene3D: React.FC<{ scrollYProgress: any }> = ({ scrollYProgress }) => {
   return (
     <>
       <PerspectiveCamera makeDefault position={[0, 0, 30]} fov={40} />
-      <color attach="background" args={['#000000']} />
-      
+      <color attach="background" args={["#000000"]} />
+
       <ambientLight intensity={0.3} />
-      <spotLight position={[30, 30, 30]} intensity={1.5} angle={0.2} penumbra={1} color="#6366f1" />
-      <spotLight position={[-30, -30, -30]} intensity={0.8} angle={0.2} penumbra={1} color="#8b5cf6" />
-      
+      <spotLight
+        position={[30, 30, 30]}
+        intensity={1.5}
+        angle={0.2}
+        penumbra={1}
+        color="#6366f1"
+      />
+      <spotLight
+        position={[-30, -30, -30]}
+        intensity={0.8}
+        angle={0.2}
+        penumbra={1}
+        color="#8b5cf6"
+      />
+
       <Environment preset="night" />
-      
+
       <DataParticleField count={2000} scrollYProgress={scrollYProgress} />
       <CentralGeometry scrollYProgress={scrollYProgress} />
       <ConnectionLines />
-      
+
       {/* Post-processing would go here in production */}
     </>
   );
@@ -205,10 +239,10 @@ export const Hero: React.FC = () => {
   const scrollRef = useRef(null);
   const { scrollYProgress } = useScroll({
     target: scrollRef,
-    offset: ["start start", "end start"],
+    offset: ["start start", "end end"],
   });
 
-  const textOpacity = useTransform(scrollYProgress, [0, 0.15, 0.3], [1, 1, 0]);
+  const textOpacity = useTransform(scrollYProgress, [0, 0.4, 0.7], [1, 1, 0]);
   const textY = useTransform(scrollYProgress, [0, 1], ["0%", "-150%"]);
   const textScale = useTransform(scrollYProgress, [0, 0.3], [1, 0.8]);
 
@@ -216,7 +250,7 @@ export const Hero: React.FC = () => {
     <section ref={scrollRef} className="relative">
       <div className="sticky top-0 h-screen w-full flex items-center justify-center overflow-hidden bg-black">
         {/* 3D Background */}
-        <div className="absolute inset-0 z-0">
+        <div className="absolute inset-0 z-0 pointer-events-none">
           <Canvas
             dpr={[1, 2]}
             gl={{
@@ -285,8 +319,10 @@ export const Hero: React.FC = () => {
               className="text-zinc-400 text-xl md:text-3xl max-w-4xl mx-auto mb-24 leading-relaxed font-light"
             >
               Transforming infinite data streams into{" "}
-              <span className="text-white font-medium">singular, high-fidelity intelligence</span>
-              {" "}— powered by advanced neural architecture.
+              <span className="text-white font-medium">
+                singular, high-fidelity intelligence
+              </span>{" "}
+              — powered by advanced neural architecture.
             </m.p>
 
             {/* CTA Buttons */}
@@ -299,18 +335,23 @@ export const Hero: React.FC = () => {
               <button className="group px-12 py-5 bg-white text-black text-sm font-bold uppercase tracking-[0.2em] rounded-full hover:bg-zinc-100 transition-all shadow-2xl hover:shadow-white/20 active:scale-95 relative overflow-hidden">
                 <span className="relative z-10 flex items-center gap-3">
                   Initialize System
-                  <svg 
-                    className="w-4 h-4 transition-transform group-hover:translate-x-1" 
-                    fill="none" 
-                    stroke="currentColor" 
+                  <svg
+                    className="w-4 h-4 transition-transform group-hover:translate-x-1"
+                    fill="none"
+                    stroke="currentColor"
                     viewBox="0 0 24 24"
                   >
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7l5 5m0 0l-5 5m5-5H6" />
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth={2}
+                      d="M13 7l5 5m0 0l-5 5m5-5H6"
+                    />
                   </svg>
                 </span>
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500/20 to-purple-500/20 opacity-0 group-hover:opacity-100 transition-opacity" />
               </button>
-              
+
               <button className="px-10 py-5 border-2 border-white/10 text-white text-sm font-bold uppercase tracking-[0.2em] rounded-full hover:bg-white/5 hover:border-white/20 transition-all backdrop-blur-sm">
                 Documentation
               </button>
@@ -334,13 +375,13 @@ export const Hero: React.FC = () => {
               37.7749° N, 122.4194° W • UTC-8
             </div>
           </div>
-          
+
           <div className="text-right">
             <div className="text-xs text-zinc-600 font-mono">
-              {new Date().toLocaleDateString('en-US', { 
-                month: 'short', 
-                day: 'numeric', 
-                year: 'numeric' 
+              {new Date().toLocaleDateString("en-US", {
+                month: "short",
+                day: "numeric",
+                year: "numeric",
               })}
             </div>
           </div>
@@ -354,14 +395,16 @@ export const Hero: React.FC = () => {
           className="absolute bottom-12 left-1/2 -translate-x-1/2 z-20"
         >
           <div className="flex flex-col items-center gap-2">
-            <div className="text-xs text-zinc-600 uppercase tracking-widest font-bold">Scroll</div>
+            <div className="text-xs text-zinc-600 uppercase tracking-widest font-bold">
+              Scroll
+            </div>
             <div className="w-px h-16 bg-gradient-to-b from-zinc-600 to-transparent animate-pulse" />
           </div>
         </m.div>
       </div>
-      
+
       {/* Spacer for scroll */}
-      <div className="h-screen" />
+      <div className="h-[200vh]" />
     </section>
   );
 };
