@@ -17,7 +17,7 @@ const DataParticleField: React.FC<{ count: number; scrollYProgress: any }> = ({
   count,
   scrollYProgress,
 }) => {
-  const points = useRef<THREE.Points>(null!);
+  const points = useRef<THREE.Group>(null!);
   const positions = useMemo(() => {
     const pos = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
@@ -60,7 +60,7 @@ const DataParticleField: React.FC<{ count: number; scrollYProgress: any }> = ({
 
       // Pulsating effect
       const pulse = Math.sin(time * 0.5) * 0.1 + 0.9;
-      const child = points.current.children[0] as THREE.Mesh;
+      const child = points.current.children[0] as THREE.Points;
       if (child && child.material) {
         (child.material as THREE.Material).opacity = opacity.get() * pulse;
       }
