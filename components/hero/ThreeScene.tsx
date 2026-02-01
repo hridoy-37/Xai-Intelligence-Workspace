@@ -1,8 +1,12 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import React, { Suspense, lazy } from "react";
 
-const ThreeSceneInner = lazy(() => import("./ThreeSceneInner"));
+const ThreeSceneInner = dynamic(
+  () => import("./ThreeSceneInner"),
+  { ssr: false },
+);
 
 export default function ThreeScene({
   scrollYProgress,
